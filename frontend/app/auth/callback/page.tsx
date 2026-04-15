@@ -17,11 +17,7 @@ export default function AuthCallbackPage() {
 
     localStorage.setItem('authToken', token);
     setMessage('Connexion réussie, redirection vers le chat...');
-    const timeout = setTimeout(() => {
-      router.push('/chat');
-    }, 1200);
-
-    return () => clearTimeout(timeout);
+    router.replace('/chat');
   }, [router]);
 
   return (

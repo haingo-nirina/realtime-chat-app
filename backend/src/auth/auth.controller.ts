@@ -39,10 +39,15 @@ export class AuthController {
   async googleAuthRedirect(@Request() req, @Res() res: Response) {
     const result = await this.authService.login(req.user);
     const frontendUrl =
-      process.env.FRONTEND_URL || 'http://localhost:3001/auth/callback';
-    const separator = frontendUrl.includes('?') ? '&' : '?';
+      process.env.FRONTEND_CALLBACK_URL ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+    const callbackUrl = frontendUrl.includes('/auth/callback')
+      ? frontendUrl
+      : `${frontendUrl.replace(/\/$/, '')}/auth/callback`;
+    const separator = callbackUrl.includes('?') ? '&' : '?';
     return res.redirect(
-      `${frontendUrl}${separator}token=${encodeURIComponent(
+      `${callbackUrl}${separator}token=${encodeURIComponent(
         result.access_token,
       )}`,
     );
