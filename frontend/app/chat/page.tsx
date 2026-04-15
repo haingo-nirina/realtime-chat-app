@@ -1,14 +1,68 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
+
+interface Message {
+  id: string;
+  content: string;
+  createdAt: string;
+  sender: { id: string; username: string; avatar: string | null };
+}
 
 export default function ChatPage() {
   const [token, setToken] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
 
   useEffect(() => {
-    setToken(localStorage.getItem('authToken'));
+    const stored = localStorage.getItem('authToken');
+    if (stored) {
+      setToken(stored);
+      fetch(`${API_URL}/chat/messages`, {
+        headers: {
+          Authorization: `Bearer ${stored}`,
+        },
+      })
+        .then((res) => res.ok ? res.json() : Promise.reject(res))
+        .then((data: Message[]) => setMessages(data))
+        .catch((error) => {
+          console.error('Failed to load messages', error);
+        });
+    }
   }, []);
+
+  async function handleSend(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed) return;
+
+    const savedToken = token || localStorage.getItem('authToken');
+    if (!savedToken) return;
+
+    try {
+      const response = await fetch(`${API_URL}/chat/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${savedToken}`,
+        },
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to send message');
+      }
+
+      const newMessage = await response.json();
+      setMessages((current) => [...current, newMessage]);
+      setInput('');
+    } catch (error) {
+      console.error('Error sending message', error);
+    }
+  }
 
   function handleLogout() {
     localStorage.removeItem('authToken');
@@ -16,35 +70,61 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-12">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Chat en temps réel</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Cette page illustre le flux authentifié. Le chat arrivera ensuite.
-            </p>
-          </div>
+    <main className="flex min-h-screen flex-col bg-slate-50">
+      <header className="border-b border-slate-200 bg-white px-4 py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between">
+          <h1 className="text-xl font-semibold text-slate-900">Chat en temps réel</h1>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
           >
             Déconnexion
           </button>
         </div>
+      </header>
 
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-          {token ? (
-            <>
-              <p className="text-slate-700">Tu es connecté.</p>
-              <p className="mt-4 text-sm text-slate-600">
-                Le token JWT est stocké dans le navigateur. Tu peux maintenant intégrer
-                le chat temps réel en utilisant ce token pour authentifier les requêtes.
-              </p>
-            </>
-          ) : (
-            <>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-4">
+        {token ? (
+          <>
+            <div className="flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-4">
+              {messages.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-8">
+                  Aucun message. Commence la conversation !
+                </p>
+              )}
+              {messages.map((msg) => (
+                <div key={msg.id} className="mb-3">
+                  <span className="text-sm font-semibold text-slate-900">
+                    {msg.sender.username}
+                  </span>
+                  <span className="ml-2 text-xs text-slate-400">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
+                  </span>
+                  <p className="mt-1 text-sm text-slate-700">{msg.content}</p>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleSend} className="mt-4 flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Écris un message..."
+                className="flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+              />
+              <button
+                type="submit"
+                className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                Envoyer
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
               <p className="text-slate-700">Tu n'es pas connecté.</p>
               <p className="mt-4 text-sm text-slate-600">
                 <Link href="/login" className="font-semibold text-slate-900 hover:underline">
@@ -56,9 +136,9 @@ export default function ChatPage() {
                 </Link>{' '}
                 pour accéder au chat.
               </p>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

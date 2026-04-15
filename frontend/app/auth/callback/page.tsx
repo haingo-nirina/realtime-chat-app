@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [message, setMessage] = useState('Vérification du login...');
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
     if (!token) {
       setMessage('Aucun token reçu depuis Google.');
       return;
@@ -22,7 +22,7 @@ export default function AuthCallbackPage() {
     }, 1200);
 
     return () => clearTimeout(timeout);
-  }, [router, searchParams]);
+  }, [router]);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">

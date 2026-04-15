@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -91,12 +91,20 @@ export default function RegisterPage() {
             {loading ? 'Création...' : 'Créer mon compte'}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500">
-          Tu as déjà un compte ?{' '}
-          <Link href="/login" className="font-semibold text-slate-900 hover:underline">
-            Connexion
-          </Link>
-        </p>
+        <div className="mt-6 space-y-4">
+          <a
+            href={`${API_URL}/auth/google`}
+            className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+          >
+            S'inscrire avec Google
+          </a>
+          <p className="text-center text-sm text-slate-500">
+            Tu as déjà un compte ?{' '}
+            <Link href="/login" className="font-semibold text-slate-900 hover:underline">
+              Connexion
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );
